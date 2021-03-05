@@ -1,0 +1,9 @@
+---
+- name: Nexus
+  hosts: nexus
+  become: yes
+
+  roles:
+    - java
+    - users
+    - nexus

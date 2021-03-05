@@ -1,0 +1,24 @@
+---
+# tasks file for user
+- name: Create group
+  group:
+    name: nexus
+    state: present
+    gid: 7700
+
+- name: Create user
+  user:
+    name: nexus
+    state: present
+    password: nexus
+    uid: 7700
+    groups: 7700
+
+- name: Add  user  to sudoers
+  lineinfile:
+    dest: /etc/sudoers
+    state: present
+    line: "{{ user_name }} ALL=(ALL) NOPASSWD: ALL"
+    validate: 'visudo -cf %s'
+  become: yes
+  when: user_sudoers != ''

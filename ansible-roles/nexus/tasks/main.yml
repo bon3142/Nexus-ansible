@@ -1,0 +1,10 @@
+- name: set nexus
+  stat:
+    path: /opt/nexus
+  register: nexus_service
+
+- debug: msg="{{nexus_service.stat.exists}}"
+  when: nexus_service.stat.exists == false
+
+- import_tasks: set_nexus.yml
+  when: nexus_service.stat.exists == false

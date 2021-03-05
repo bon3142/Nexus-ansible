@@ -1,0 +1,118 @@
+---
+# tasks file for nexus
+
+- name: set unzip
+  apt:
+    name: unzip
+    state: present
+
+- name: create folder nexus
+  file:
+    path: /opt/nexus
+    state: directory
+    owner: nexus
+    group: nexus
+
+- name: wget nexus
+  get_url:
+    url: https://sonatype-download.global.ssl.fastly.net/nexus/3/nexus-3.29.2-02-unix.tar.gz
+    dest: /tmp
+
+- name: Extract
+  unarchive:
+    remote_src: yes
+    src: /tmp/nexus-3.29.2-02-unix.tar.gz
+    dest: /tmp
+
+- name: copy folder nexus-3.29.2-02
+  copy:
+    src: /tmp/nexus-3.29.2-02
+    dest: /opt/nexus
+    remote_src: yes
+    owner: nexus
+    group: nexus
+
+- name: copy folder sonatype-work
+  copy:
+    src: /tmp/sonatype-work
+    dest: /opt/nexus
+    remote_src: yes
+    owner: nexus
+    group: nexus
+
+- name: copy
+  copy:
+    src: nexus.service
+    dest: /etc/systemd/system
+
+- name: Install the package "nfs-common"
+  apt:
+    name: nfs-common
+    state: present
+  become: yes
+
+- name: Set new blob for new repositiry
+  file:
+    path: /opt/nexus/ea-prod-blob
+    state: directory
+    owner: nexus
+    group: nexus
+
+- name: mount efs nexus-data-fs-tr
+  shell: |
+    mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport \
+        fs-5bb1bdaa.efs.eu-west-2.amazonaws.com:/ /opt/nexus/ea-prod-blob
+  ignore_errors: yes
+  become: yes
+
+############## start nexus #################
+- name: start nexus service
+  systemd:
+    name: nexus.service
+    enabled: true
+    state: started
+############## to restore db nexus ##################
+#- name:  copy *.bak files from aws efs
+#  copy:
+#    src: /opt/nexus/ea-prod-blob/"{{ item }}"
+#    dest: /opt/nexus/sonatype-work/nexus3/restore-from-backup
+#    remote_src: yes
+#  with_items:
+#    - component-2021-03-03-13-08-53-3.29.2-02.bak
+#    - security-2021-03-03-13-08-53-3.29.2-02.bak
+#    - config-2021-03-03-13-08-53-3.29.2-02.bak
+
+#- name: stop nexus service
+#  systemd:
+#    name: nexus.service
+#    state: stopped
+#
+#- name: remove directory component
+#  file:
+#    path: /opt/nexus/sonatype-work/nexus3/db/component
+#    state: absent
+#
+#- name: remove directory config
+#  file:
+#    path: /opt/nexus/sonatype-work/nexus3/db/config
+#    state: absent
+#
+#- name: remove directory security
+#  file:
+#    path: /opt/nexus/sonatype-work/nexus3/db/security
+#    state: absent
+#
+#- name: start nexus service
+#  systemd:
+#    name: nexus.service
+#    enabled: true
+#    state: started
+#
+#- name: remove file
+#  file:
+#    path: /opt/nexus/ea-prod-blob/"{{ item }}"
+#    state: absent
+#  with_items:
+#    - component-2021-03-03-13-08-53-3.29.2-02.bak
+#    - security-2021-03-03-13-08-53-3.29.2-02.bak
+#    - config-2021-03-03-13-08-53-3.29.2-02.bak
